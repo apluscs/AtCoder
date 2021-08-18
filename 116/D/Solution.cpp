@@ -28,59 +28,36 @@ typedef pair<int, int> pii;
   for (auto asdf = x.begin(); asdf != x.end(); asdf++) cout << *asdf << ' '; \
   cout << endl;
 
-const int mod = 1e9 + 7, MAXN = 1002, MAXT = 101, inf = 1e9;
+const int mod = 998244353, MAXN = 5002;
 
-int n, B, C0, C[MAXT], pts[MAXN][2], cost[MAXN][MAXN], dist_cost[MAXN][MAXN], dp[MAXN][MAXT];
-vector<pii> adj[MAXN];  // adj list
+int n, m, choose[MAXN][MAXN];
 struct Solution {
   int solve() {
-    memset(dp, -1, sizeof(dp));
-    int res = solve(n, B);
-    return res == inf ? -1 : res;
-  }
-  int solve(int i, int b) {  // min cost to go from i to n+1 with b budget left
-    if (b < 0) return inf;
-    if (i == n + 1) return 0;
-    if (dp[i][b] != -1) return dp[i][b];
-    dp[i][b] = inf;
-    for (auto& p : adj[i]) {
-      int j = p.first, x = p.second;
-      dp[i][b] = min(dp[i][b], solve(j, b - dist_cost[i][j]) + x);
+    if (m % 2) return 0;
+    precompute();
+    ll dp[MAXN] = {1};  // dp[i] = #ways to achieve sum i
+    for (int i = 2; i <= m; i += 2) {
+      for (int j = 0; j <= i; j += 2) {  // #ones to place in last column
+        dp[i] = (dp[i] + choose[n][j] * dp[(i - j) / 2]) % mod;
+      }
     }
-    return dp[i][b];
+    return dp[m];
+  }
+  void precompute() {
+    REP(i, n + 1)
+    choose[i][0] = 1;  // one way to choose 0
+    REPN(i, n) {
+      REPN(j, i) {
+        choose[i][j] = (choose[i - 1][j - 1] + choose[i - 1][j]) % mod;
+      }
+    }
   }
 };
-int dist(int i, int j) {
-  return ceil(sqrt((pts[i][0] - pts[j][0]) * (pts[i][0] - pts[j][0]) + (pts[i][1] - pts[j][1]) * (pts[i][1] - pts[j][1])));
-}
 
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(0);
   Solution test;
-  int src[2], dest[2], T, L, j, m;
-  cin >> src[0] >> src[1] >> dest[0] >> dest[1] >> B >> C0 >> T;
-  REPN(i, T) {
-    cin >> C[i];
-  }
-  cin >> n;  // for src=n and dest=n+1
-  // dbgarr(C, T + 1);
-  pts[n][0] = src[0], pts[n][1] = src[1], pts[n + 1][0] = dest[0], pts[n + 1][1] = dest[1];
-  REP(i, n)
-  fill_n(cost[i], MAXN, inf);
-  cost[n][n + 1] = cost[n][n + 1] = C0;
-  REP(i, n) {
-    cin >> pts[i][0] >> pts[i][1] >> L, cost[n][i] = cost[i][n] = cost[i][n + 1] = cost[n + 1][i] = C0;
-    while (L--) {
-      cin >> j >> m, cost[i][j] = cost[j][i] = min(cost[j][i], C[m]);
-    }
-  }
-  REP(i, n + 2) {
-    REP(j, n + 2) {
-      if (cost[i][j] == inf) continue;
-      dist_cost[i][j] = dist_cost[j][i] = dist(i, j);
-      adj[i].push_back({j, cost[i][j] * dist_cost[i][j]});
-    }
-  }
+  cin >> n >> m;
   cout << test.solve() << endl;
 }
