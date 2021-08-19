@@ -17,7 +17,6 @@ typedef pair<int, int> pii;
 #define REPN(i, n) FORN(i, 1, n)
 #define dbg(x) cout << (#x) << " is " << (x) << endl;
 #define dbg2(x, y) cout << (#x) << " is " << (x) << " and " << (#y) << " is " << y << endl;
-#define dbg3(x, y, z) cout << (#x) << " is " << (x) << ", " << (#y) << " is " << y << ", " << (#z) << " is " << z << endl;
 #define dbgarr(x, sz)                                             \
   for (int asdf = 0; asdf < (sz); asdf++) cout << x[asdf] << ' '; \
   cout << endl;
@@ -32,49 +31,63 @@ typedef pair<int, int> pii;
 #define all(x) begin(x), end(x)
 #define sz(x) (int)(x).size()
 
-const int MAXN = 502, inf = 1e9, dir[4][2] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+const int mod = 998244353, MAXn = 17, MAXN = (1 << 17), MAX_COUNT = 17 * 17 + 2;
 
-int H, W, dist[MAXN][MAXN];
-bool vis[MAXN][MAXN];
-string grid[MAXN];
+int n, m, N, Es[MAXN];
+ll twos[MAX_COUNT], dp[MAXN];
+vi adj[MAXn];
 
-bool out(int i, int j) { return i <= -1 || i >= H || j <= -1 || j >= W; }
+bool is_in(int s, int i) {
+  return s & (1 << i);
+}
 
-int solve() {
-  deque<pii> q;
-  REP(i, H)
-  fill(dist[i], dist[i] + MAXN, inf);
-  q.emplace_front(0, 0), dist[0][0] = 0;
-  while (!q.empty()) {
-    auto v = q.front();
-    q.pop_front();
-    int i = v.first, j = v.second;
-    // if (vis[i][j]) continue;
-    vis[i][j] = true;
-    FOR(di, -2, 3) {
-      FOR(dj, -2, 3) {
-        int ni = i + di, nj = j + dj, w = abs(di) + abs(dj) > 1;
-        // dbg3(ni, nj, w);
-        if (out(ni, nj) || abs(di) + abs(dj) == 4) continue;
-        w = w || grid[ni][nj] == '#';                  // or adjacent and blocked
-        if (dist[ni][nj] <= dist[i][j] + w) continue;  // not impoved
-        dist[ni][nj] = dist[i][j] + w;
-        if (w)
-          q.emplace_back(ni, nj);
-        else
-          q.emplace_front(ni, nj);  // smaller ones go to front
-      }
+void prep() {
+  REP(s, 1 << n) {  // every subset
+    REP(i, n) {
+      if (!is_in(s, i)) continue;
+      // if(s==6) dbg(i);
+      for (int j : adj[i]) Es[s] += is_in(s, j) && i < j;  // count edges only once
     }
   }
-  // dbgarr2(dist, H, W);
-  return dist[H - 1][W - 1];
+  twos[0] = 1;
+  FOR(i, 1, MAX_COUNT)
+  twos[i] = twos[i - 1] * 2 % mod;
+  // dbgarr(Es, 1 << n);
+}
+
+int ways_conn(int s) {  // #ways to connect subset s
+  if (dp[s] != -1) return dp[s];
+  dp[s] = twos[Es[s]];
+  for (int sub = (s - 1) & s; sub; sub = (sub - 1) & s) {
+    if (!is_in(sub, 0)) continue;
+    // dbg2(s, sub);
+    int not_sub = s - sub;
+    dp[s] = (dp[s] - (ways_conn(sub) * twos[Es[not_sub]] % mod) + mod) % mod;
+  }
+  return dp[s];
+}
+
+void solve() {
+  prep(), memset(dp, -1, sizeof(dp));
+  const int ALL = (1 << n) - 1;
+  FOR(k, 1, n) {
+    ll res = 0;
+    REP(s, 1 << n) {
+      if (!is_in(s, 0) || !is_in(s, k)) continue;  // 0 and k aren't connected
+      // dbg2(s, ways_conn(s));
+      int not_s = ALL - s;
+      res = (res + twos[Es[not_s]] * ways_conn(s)) % mod;
+    }
+    printf("%lld\n", res);
+  }
 }
 
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(0);
-  cin >> H >> W;
-  REP(i, H)
-  cin >> grid[i];
-  cout << solve() << endl;
+  cin >> n >> m, N = 1 << n;
+  int a, b;
+  REP(i, m)
+  cin >> a >> b, adj[--a].push_back(--b), adj[b].push_back(a);
+  solve();
 }
